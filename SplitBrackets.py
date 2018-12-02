@@ -93,6 +93,5 @@ else:
                     print('impossible')
                     exit(0)
                 else:
-                    string += '2' +' '
-                    
+                    string += '2' +' '          
     print(string)
