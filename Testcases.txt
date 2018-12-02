@@ -1,0 +1,17 @@
+13 3
+company NONE 70 400
+engineering company 40 120
+team1 engineering 0 20
+team2 engineering 0 0
+manufacturing company 50 80
+team1 manufacturing 0 0
+team2 manufacturing 25 25
+finance company 10 0
+team1 finance 0 0
+team2 finance 20 40
+team3 finance 30 30
+team2part1 team2 10 0
+team2part2 team2 0 0
+company 1
+team2part2 2
+team1 finance 1
