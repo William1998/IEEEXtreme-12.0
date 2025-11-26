@@ -20,7 +20,7 @@ name: Snyk Security
 
 on:
   push:
-    branches: ["master" ]
+    branches: ["master"]
   pull_request:
     branches: ["master"]
 
@@ -50,6 +50,9 @@ jobs:
         env:
           # This is where you will need to introduce the Snyk API token created with your Snyk account
           SNYK_TOKEN: 6eb759c2-d048-42f7-a2d4-f002744ec399
+        with:
+          file: .
+          sarif: true
 
         # Runs Snyk Code (SAST) analysis and uploads result into GitHub.
         # Use || true to not fail the pipeline
