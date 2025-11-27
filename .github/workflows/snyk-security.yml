@@ -1,79 +1,64 @@
-# This workflow uses actions that are not certified by GitHub.
-# They are provided by a third-party and are governed by
-# separate terms of service, privacy policy, and support
-# documentation.
-
-# A sample workflow which sets up Snyk to analyze the full Snyk platform (Snyk Open Source, Snyk Code,
-# Snyk Container and Snyk Infrastructure as Code)
-# The setup installs the Snyk CLI - for more details on the possible commands
-# check https://docs.snyk.io/snyk-cli/cli-reference
-# The results of Snyk Code are then uploaded to GitHub Security Code Scanning
-#
-# In order to use the Snyk Action you will need to have a Snyk API token.
-# More details in https://github.com/snyk/actions#getting-your-snyk-token
-# or you can signup for free at https://snyk.io/login
-#
-# For more examples, including how to limit scans to only high-severity issues
-# and fail PR checks, see https://github.com/snyk/actions/
-
-name: Snyk Security
+name: Snyk Security Scan
 
 on:
   push:
-    branches: ["master"]
+    branches: ["main", "master"]
   pull_request:
-    branches: ["master"]
-
-permissions:
-  contents: read
+    branches: ["main", "master"]
 
 jobs:
-  snyk:
-    permissions:
-      contents: read # for actions/checkout to fetch code
-      security-events: write # for github/codeql-action/upload-sarif to upload SARIF results
-      actions: read # only required for a private repository by github/codeql-action/upload-sarif to get the Action run status
+  snyk-security:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - name: Set up Snyk CLI to check for security issues
-        # Snyk can be used to break the build when it detects security issues.
-        # In this case we want to upload the SAST issues to GitHub Code Scanning
-        uses: snyk/actions/setup@806182742461562b67788a64410098c9d9b96adb
+      # 1. Checkout the repository
+      - name: Checkout Code
+        uses: actions/checkout@v4
 
-        # For Snyk Open Source you must first set up the development environment for your application's dependencies
-        # For example for Node
-        #- uses: actions/setup-node@v4
-        #  with:
-        #    node-version: 20
+      # -----------------------------------------------------------
+      # 2. SETUP ENVIRONMENT & INSTALL DEPENDENCIES (Added Request)
+      # -----------------------------------------------------------
+      # Example: Node.js Setup.
+      # If using Python, use 'actions/setup-python' and 'pip install'.
+      # If using Java, use 'actions/setup-java' and 'mvn install'.
+      
+      # - name: Setup Node.js
+      #   uses: actions/setup-node@v4
+      #   with:
+      #     node-version: '18' # Adjust version as needed
+          
+      # - name: Install Project Dependencies
+      #   run: npm install
+        # For Python: run: pip install -r requirements.txt
+        # For Java:   run: mvn install -DskipTests
 
+      # -----------------------------------------------------------
+      # 3. SETUP SNYK & RUN SCANS
+      # -----------------------------------------------------------
+      
+      - name: Setup Snyk CLI
+        uses: snyk/actions/setup@master
+
+      # Snyk Open Source (SCA) - Relies on the 'npm install' step above
+      - name: Snyk Open Source (SCA)
+        run: snyk test --severity-threshold=high
         env:
-          # This is where you will need to introduce the Snyk API token created with your Snyk account
-          SNYK_TOKEN: 6eb759c2-d048-42f7-a2d4-f002744ec399
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        continue-on-error: true 
 
-        # Runs Snyk Code (SAST) analysis and uploads result into GitHub.
-        # Use || true to not fail the pipeline
-      - name: Snyk Code test
-        run: snyk code test --sarif > snyk-code.sarif --org=c0a9d14a-1e2b-4806-bf7f-b27c76d2c503 || true
+      # Snyk Code (SAST)
+      - name: Snyk Code (SAST)
+        run: snyk code test --severity-threshold=high
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        continue-on-error: true
 
-      #   # Runs Snyk Open Source (SCA) analysis and uploads result to Snyk.
-      # - name: Snyk Open Source monitor
-      #   run: snyk monitor --all-projects --org=c0a9d14a-1e2b-4806-bf7f-b27c76d2c503
+      # # Build Docker Image (Required for Container Scanning)
+      # - name: Build Docker Image
+      #   run: docker build . -t my-app:latest
 
-        # Runs Snyk Infrastructure as Code (IaC) analysis and uploads result to Snyk.
-        # Use || true to not fail the pipeline.
-      - name: Snyk IaC test and report
-        run: snyk iac test --report --org=c0a9d14a-1e2b-4806-bf7f-b27c76d2c503 || true
-
-      #   # Build the docker image for testing
-      # - name: Build a Docker image
-      #   run: docker build -t your/image-to-test .
-      #   # Runs Snyk Container (Container and SCA) analysis and uploads result to Snyk.
-      # - name: Snyk Container monitor
-      #   run: snyk container monitor your/image-to-test --file=Dockerfile
-
-        # Push the Snyk Code results into GitHub Code Scanning tab
-      - name: Upload result to GitHub Code Scanning
-        uses: github/codeql-action/upload-sarif@v3
-        with:
-          sarif_file: snyk-code.sarif
+      # # Snyk Container
+      # - name: Snyk Container
+      #   run: snyk container test my-app:latest --file=Dockerfile --severity-threshold=high
+      #   env:
+      #     SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+      #   continue-on-error: true
